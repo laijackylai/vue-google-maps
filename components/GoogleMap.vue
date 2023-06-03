@@ -182,7 +182,7 @@ export default {
       },
       latestLocation: null,
       locations: [
-        // dummy entry
+        // dummy data
         // {
         //   checked: false,
         //   id: 0,
@@ -252,13 +252,15 @@ export default {
     // get and set latest location
     async setLatestLocation(location) {
       const timeZone = await this.getTimeZone(location.lat, location.lng)
-      const localTime = new Date().toLocaleString('en-US', {
-        timeZone,
-      })
-      this.latestLocation = {
-        name: location.name,
-        timeZone,
-        localTime,
+      if (timeZone !== 'Error') {
+        const localTime = new Date().toLocaleString('en-US', {
+          timeZone,
+        })
+        this.latestLocation = {
+          name: location.name,
+          timeZone,
+          localTime,
+        }
       }
     },
 
@@ -274,6 +276,7 @@ export default {
         return data.timeZoneId
       } catch (error) {
         console.error('Error retrieving time zone:', error)
+        return 'Error'
       }
     },
 

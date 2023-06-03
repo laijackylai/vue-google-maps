@@ -31,7 +31,8 @@ $ yarn generate
   - Geocoding API
   - Places API
   - Maps JavaScript API
+  - Time Zone API
 - Each of the API are set to have quotas of the following:
-  - Requests per day: 250
-  - Requests per minute: 20
-  - Requests per minute per user: 10
+  - Requests per day: 1000
+  - Requests per minute: 250
+  - Requests per minute per user: 100
