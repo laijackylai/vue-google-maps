@@ -24,7 +24,6 @@
           class="form-control"
           placeholder="Search Location"
           @keyup.enter="searchLocation"
-          @input="handleInputChange"
           @click="autoHighlightInput"
         />
         <button class="input-group-text" @click="searchLocation">
@@ -420,18 +419,6 @@ export default {
 
     autoHighlightInput() {
       this.$refs.textInput.select()
-    },
-
-    // autocomplete feature
-    handleInputChange() {
-      // console.log(google.maps)
-      // console.log(google.maps.places)
-      // const input = document.getElementById('autocomplete-input')
-      // const autocomplete = new google.maps.places.Autocomplete(input)
-      // autocomplete.addListener('place_changed', () => {
-      //   const place = this.autocomplete.getPlace()
-      //   console.log(place)
-      // })
     },
 
     // go to next page
