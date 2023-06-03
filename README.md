@@ -27,7 +27,7 @@ $ yarn generate
 
 ## Remarks
 
-- The apiKey are being restricted to three APIs
+- The apiKey are being restricted to four APIs
   - Geocoding API
   - Places API
   - Maps JavaScript API
