@@ -1,6 +1,8 @@
+<!-- eslint-disable no-console -->
 <template>
   <div>
     <div class="container">
+      <h1>NUXT Google Maps</h1>
       <!-- get location -->
       <div class="location">
         <button class="input-group-text" @click="getLocation">
@@ -67,12 +69,12 @@
             <a class="page-link" href="#" @click="currentPage -= 1">Previous</a>
           </li>
           <li
-            class="page-item"
-            :class="{ active: page === currentPage }"
             v-for="page in totalPages"
             :key="page"
+            class="page-item"
+            :class="{ active: page === currentPage }"
           >
-            <a class="page-link" @click="currentPage = page" href="#">{{
+            <a class="page-link" href="#" @click="currentPage = page">{{
               page
             }}</a>
           </li>
