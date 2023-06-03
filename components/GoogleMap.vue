@@ -16,12 +16,14 @@
       <div class="input-group">
         <input
           id="autocomplete-input"
+          ref="textInput"
           v-model="searchQuery"
           type="text"
           class="form-control"
           placeholder="Search Location"
           @keyup.enter="searchLocation"
           @input="handleInputChange"
+          @click="autoHighlightInput"
         />
         <button class="input-group-text" @click="searchLocation">
           <i class="bi bi-search"></i>
@@ -36,7 +38,7 @@
       language="en"
       :center="center"
       :options="{ fullscreenControl: true }"
-      :zoom="12"
+      :zoom="8"
     >
       <GMapMarker
         v-for="location in locations"
@@ -54,6 +56,11 @@
 
     <!-- locations -->
     <div class="info">
+      <div v-if="latestLocation">
+        <div>Latest Location: {{ latestLocation.name }}</div>
+        <div>Time Zone: {{ latestLocation.timeZone }}</div>
+        <div>Local Time: {{ latestLocation.localTime }}</div>
+      </div>
       <div class="table-top-row">
         <ul class="pagination">
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
@@ -122,6 +129,7 @@ export default {
         lat: 43.6532,
         lng: -79.3832,
       },
+      latestLocation: null,
       locations: [
         // dummy entry
         // {
@@ -166,6 +174,34 @@ export default {
       this.loadGoogleMaps()
     },
 
+    // get and set latest location
+    async setLatestLocation(location) {
+      const timeZone = await this.getTimeZone(location.lat, location.lng)
+      const localTime = new Date().toLocaleString('en-US', {
+        timeZone,
+      })
+      this.latestLocation = {
+        name: location.name,
+        timeZone,
+        localTime,
+      }
+    },
+
+    // get timezone
+    async getTimeZone(lat, lng) {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${Math.floor(
+            Date.now() / 1000
+          )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        )
+        const data = await response.json()
+        return data.timeZoneId
+      } catch (error) {
+        console.error('Error retrieving time zone:', error)
+      }
+    },
+
     // get current location of user
     getLocation() {
       if (navigator.geolocation) {
@@ -180,12 +216,13 @@ export default {
 
     // if location is got, update map center and add new location marker
     async handleSuccess(position) {
-      const latitude = position.coords.latitude
-      const longitude = position.coords.longitude
-      this.currentLocation = `Latitude: ${latitude}, Longitude: ${longitude}`
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+
+      this.currentLocation = `Latitude: ${lat}, Longitude: ${lng}`
       const newCenter = {
-        lat: latitude,
-        lng: longitude,
+        lat,
+        lng,
       }
       this.updateMapCenter(newCenter)
       const newLocation = {
@@ -193,14 +230,15 @@ export default {
         id: 1,
         name: 'current location',
         position: {
-          lat: latitude,
-          lng: longitude,
+          lat,
+          lng,
         },
       }
       if (!this.checkDuplicate(newLocation)) {
         await this.locations.push(newLocation)
       }
       await this.$refs.gMap.initChildren()
+      await this.setLatestLocation({ name: 'current location', lat, lng })
     },
 
     // get user location error handler
@@ -247,21 +285,26 @@ export default {
               if (results && results.length > 0) {
                 const res = results[0]
                 const id = res.place_id
-                const latitude = res.geometry.location.lat()
-                const longitude = res.geometry.location.lng()
+                const lat = res.geometry.location.lat()
+                const lng = res.geometry.location.lng()
                 const newLocation = {
                   checked: false,
                   id,
                   name: this.searchQuery,
                   position: {
-                    lat: latitude,
-                    lng: longitude,
+                    lat,
+                    lng,
                   },
                 }
                 if (!this.checkDuplicate(newLocation)) {
                   await this.locations.push(newLocation)
                 }
-                this.updateMapCenter({ lat: latitude, lng: longitude })
+                this.updateMapCenter({ lat, lng })
+                await this.setLatestLocation({
+                  name: this.searchQuery,
+                  lat,
+                  lng,
+                })
               }
             } else {
               console.error('No locations found:', status)
@@ -293,6 +336,10 @@ export default {
     checkDuplicate(newLocation) {
       // return false
       return this.locations.some((item) => item.id === newLocation.id)
+    },
+
+    autoHighlightInput() {
+      this.$refs.textInput.select()
     },
 
     // autocomplete feature
@@ -329,6 +376,7 @@ export default {
   display: flex;
   flex-direction: column;
   padding: 1rem;
+  gap: 5px;
 }
 
 .location {
