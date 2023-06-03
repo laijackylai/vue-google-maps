@@ -1,26 +1,32 @@
 <template>
   <div>
-    <!-- get location -->
-    <div class="location">
-      <button class="input-group-text" @click="getLocation">
-        Get Current Location
-      </button>
-      <p v-if="error">{{ error }}</p>
-      <p v-else-if="currentLocation">Current Location: {{ currentLocation }}</p>
-    </div>
+    <div class="container">
+      <!-- get location -->
+      <div class="location">
+        <button class="input-group-text" @click="getLocation">
+          Get Current Location
+        </button>
+        <p v-if="error" class="error">{{ error }}</p>
+        <p v-else-if="currentLocation" class="current-location">
+          {{ currentLocation }}
+        </p>
+      </div>
 
-    <!-- search -->
-    <div class="input-group">
-      <input
-        v-model="searchQuery"
-        type="text"
-        class="form-control"
-        placeholder="Search Location"
-        @keyup.enter="searchLocation"
-      />
-      <button class="input-group-text" @click="searchLocation">
-        <i class="bi bi-search"></i>
-      </button>
+      <!-- search -->
+      <div class="input-group">
+        <input
+          id="autocomplete-input"
+          v-model="searchQuery"
+          type="text"
+          class="form-control"
+          placeholder="Search Location"
+          @keyup.enter="searchLocation"
+          @input="handleInputChange"
+        />
+        <button class="input-group-text" @click="searchLocation">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
     </div>
 
     <!-- map component -->
@@ -47,7 +53,33 @@
     </GMap>
 
     <!-- locations -->
-    <div>
+    <div class="info">
+      <div class="table-top-row">
+        <ul class="pagination">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <a class="page-link" href="#" @click="currentPage -= 1">Previous</a>
+          </li>
+          <li
+            class="page-item"
+            :class="{ active: page === currentPage }"
+            v-for="page in totalPages"
+            :key="page"
+          >
+            <a class="page-link" @click="currentPage = page" href="#">{{
+              page
+            }}</a>
+          </li>
+          <li
+            class="page-item"
+            :class="{ disabled: currentPage === totalPages }"
+          >
+            <a class="page-link" href="#" @click="currentPage += 1">Next</a>
+          </li>
+        </ul>
+        <button v-if="locations.length > 0" @click="deleteLocations">
+          Delete Selected Locations
+        </button>
+      </div>
       <table class="table">
         <thead>
           <tr>
@@ -58,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="location in locations" :key="location.id">
+          <tr v-for="location in displayedLocations" :key="location.id">
             <td><input v-model="location.checked" type="checkbox" /></td>
             <td
               class="clickable-cell"
@@ -76,9 +108,6 @@
           </tr>
         </tbody>
       </table>
-      <button v-if="locations.length > 0" @click="deleteLocations">
-        Delete Selected Locations
-      </button>
     </div>
   </div>
 </template>
@@ -105,10 +134,31 @@ export default {
         //   },
         // },
       ],
+      currentPage: 1,
+      pageSize: 10,
       currentLocation: null,
       error: null,
       searchQuery: '',
     }
+  },
+  computed: {
+    startIndex() {
+      return (this.currentPage - 1) * this.pageSize
+    },
+    endIndex() {
+      return this.startIndex + this.pageSize - 1
+    },
+    displayedLocations() {
+      return this.locations.slice(this.startIndex, this.endIndex + 1)
+    },
+    totalPages() {
+      const res = Math.ceil(this.locations.length / this.pageSize)
+      if (res === 0) {
+        return 1
+      } else {
+        return res
+      }
+    },
   },
   methods: {
     // functions to run at the start
@@ -147,7 +197,9 @@ export default {
           lng: longitude,
         },
       }
-      await this.locations.push(newLocation)
+      if (!this.checkDuplicate(newLocation)) {
+        await this.locations.push(newLocation)
+      }
       await this.$refs.gMap.initChildren()
     },
 
@@ -169,7 +221,7 @@ export default {
       }
     },
 
-    // load google maps
+    // load google maps api
     async loadGoogleMaps() {
       const loader = new Loader({
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -186,37 +238,40 @@ export default {
 
     // search and get the location of the top result from the user's search query
     async searchLocation() {
-      const geocoder = new google.maps.Geocoder()
-      await geocoder.geocode(
-        { address: this.searchQuery },
-        async (results, status) => {
-          if (status === 'OK') {
-            if (results && results.length > 0) {
-              const res = results[0]
-              const id = res.place_id
-              const latitude = res.geometry.location.lat()
-              const longitude = res.geometry.location.lng()
-              const newLocation = {
-                checked: false,
-                id,
-                name: this.searchQuery,
-                position: {
-                  lat: latitude,
-                  lng: longitude,
-                },
+      try {
+        const geocoder = new google.maps.Geocoder()
+        await geocoder.geocode(
+          { address: this.searchQuery },
+          async (results, status) => {
+            if (status === 'OK') {
+              if (results && results.length > 0) {
+                const res = results[0]
+                const id = res.place_id
+                const latitude = res.geometry.location.lat()
+                const longitude = res.geometry.location.lng()
+                const newLocation = {
+                  checked: false,
+                  id,
+                  name: this.searchQuery,
+                  position: {
+                    lat: latitude,
+                    lng: longitude,
+                  },
+                }
+                if (!this.checkDuplicate(newLocation)) {
+                  await this.locations.push(newLocation)
+                }
+                this.updateMapCenter({ lat: latitude, lng: longitude })
               }
-              await this.locations.push(newLocation)
-              this.updateMapCenter({ lat: latitude, lng: longitude })
-              // await this.$refs.gMap.initChildren()
+            } else {
+              console.error('No locations found:', status)
+              alert('Location query failed: ' + status)
             }
-          } else {
-            console.error(
-              'Geocode was not successful for the following reason:',
-              status
-            )
           }
-        }
-      )
+        )
+      } catch (error) {
+        console.error(error)
+      }
     },
 
     // delete selected locations
@@ -233,11 +288,61 @@ export default {
         this.$refs.gMap.initMap()
       })
     },
+
+    // check for duplicate location
+    checkDuplicate(newLocation) {
+      // return false
+      return this.locations.some((item) => item.id === newLocation.id)
+    },
+
+    // autocomplete feature
+    handleInputChange() {
+      console.log(google.maps)
+      console.log(google.maps.places)
+      // const input = document.getElementById('autocomplete-input')
+      // const autocomplete = new google.maps.places.Autocomplete(input)
+      // autocomplete.addListener('place_changed', () => {
+      //   const place = this.autocomplete.getPlace()
+      //   console.log(place)
+      // })
+    },
+
+    // go to next page
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
+    // go to previous page
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
   },
 }
 </script>
 
 <style>
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.location {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+}
+
+.error,
+.current-location {
+  margin: 0;
+}
+
 .map {
   width: 100vw;
 }
@@ -248,5 +353,16 @@ export default {
 
 .clickable-cell {
   cursor: pointer;
+}
+
+.info {
+  padding: 1rem;
+}
+
+.table-top-row {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>
