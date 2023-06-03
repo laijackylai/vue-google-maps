@@ -42,6 +42,7 @@
       :options="{ fullscreenControl: true }"
       :zoom="8"
     >
+      <!-- map markers -->
       <GMapMarker
         v-for="location in locations"
         :key="location.id"
@@ -64,31 +65,79 @@
         <div>Local Time: {{ latestLocation.localTime }}</div>
       </div>
       <div class="table-top-row">
-        <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <a class="page-link" href="#" @click="currentPage -= 1">Previous</a>
-          </li>
-          <li
-            v-for="page in totalPages"
-            :key="page"
-            class="page-item"
-            :class="{ active: page === currentPage }"
-          >
-            <a class="page-link" href="#" @click="currentPage = page">{{
-              page
-            }}</a>
-          </li>
-          <li
-            class="page-item"
-            :class="{ disabled: currentPage === totalPages }"
-          >
-            <a class="page-link" href="#" @click="currentPage += 1">Next</a>
-          </li>
-        </ul>
-        <button v-if="locations.length > 0" @click="deleteLocations">
-          Delete Selected Locations
-        </button>
+        <div class="table-controls">
+          <!-- sorting buttons -->
+          <div class="btn-group" role="group" aria-label="Sorting Options">
+            <!-- Sort by Time button -->
+            <button
+              type="button"
+              class="btn btn-primary text-white"
+              @click="sortByTimeAdded"
+            >
+              <i class="bi bi-clock"></i>Time
+            </button>
+
+            <!-- Sort by Name button -->
+            <button
+              type="button"
+              class="btn btn-primary text-white"
+              @click="sortByName"
+            >
+              <i class="bi bi-sort-alpha-down"></i>Name
+            </button>
+
+            <!-- Sort by Latitude button -->
+            <button
+              type="button"
+              class="btn btn-primary text-white"
+              @click="sortByLat"
+            >
+              <i class="bi bi-geo-alt"></i>Lat
+            </button>
+
+            <!-- Sort by Longitude button -->
+            <button
+              type="button"
+              class="btn btn-primary text-white"
+              @click="sortByLon"
+            >
+              <i class="bi bi-geo-alt"></i>Long
+            </button>
+          </div>
+
+          <!-- pagination controls -->
+          <div>
+            <div role="group" class="pagination">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <a class="page-link" href="#" @click="currentPage -= 1"
+                  >Previous</a
+                >
+              </li>
+              <li
+                v-for="page in totalPages"
+                :key="page"
+                class="page-item"
+                :class="{ active: page === currentPage }"
+              >
+                <a class="page-link" href="#" @click="currentPage = page">{{
+                  page
+                }}</a>
+              </li>
+              <li
+                class="page-item"
+                :class="{ disabled: currentPage === totalPages }"
+              >
+                <a class="page-link" href="#" @click="currentPage += 1">Next</a>
+              </li>
+            </div>
+          </div>
+        </div>
+
+        <!-- delete selected button -->
+        <button @click="deleteLocations">Delete Selected Locations</button>
       </div>
+
+      <!-- locations table -->
       <table class="table">
         <thead>
           <tr>
@@ -176,6 +225,30 @@ export default {
       this.loadGoogleMaps()
     },
 
+    sortByTimeAdded() {
+      this.locations = this.locations.sort(function (a, b) {
+        return a.timeAdded > b.timeAdded ? 1 : -1
+      })
+    },
+
+    sortByName() {
+      this.locations = this.locations.sort(function (a, b) {
+        return a.name > b.name ? 1 : -1
+      })
+    },
+
+    sortByLat() {
+      this.locations = this.locations.sort(function (a, b) {
+        return a.position.latitude > b.position.latitude ? 1 : -1
+      })
+    },
+
+    sortByLon() {
+      this.locations = this.locations.sort(function (a, b) {
+        return a.position.longitude > b.position.longitude ? 1 : -1
+      })
+    },
+
     // get and set latest location
     async setLatestLocation(location) {
       const timeZone = await this.getTimeZone(location.lat, location.lng)
@@ -228,9 +301,10 @@ export default {
       }
       this.updateMapCenter(newCenter)
       const newLocation = {
+        timeAdded: new Date(),
         checked: false,
         id: 1,
-        name: 'current location',
+        name: 'Current Location',
         position: {
           lat,
           lng,
@@ -240,7 +314,7 @@ export default {
         await this.locations.push(newLocation)
       }
       await this.$refs.gMap.initChildren()
-      await this.setLatestLocation({ name: 'current location', lat, lng })
+      await this.setLatestLocation({ name: 'Current Location', lat, lng })
     },
 
     // get user location error handler
@@ -290,6 +364,7 @@ export default {
                 const lat = res.geometry.location.lat()
                 const lng = res.geometry.location.lng()
                 const newLocation = {
+                  timeAdded: new Date(),
                   checked: false,
                   id,
                   name: this.searchQuery,
@@ -346,8 +421,8 @@ export default {
 
     // autocomplete feature
     handleInputChange() {
-      console.log(google.maps)
-      console.log(google.maps.places)
+      // console.log(google.maps)
+      // console.log(google.maps.places)
       // const input = document.getElementById('autocomplete-input')
       // const autocomplete = new google.maps.places.Autocomplete(input)
       // autocomplete.addListener('place_changed', () => {
@@ -413,6 +488,13 @@ export default {
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;
+  align-items: center;
+}
+
+.table-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
   align-items: center;
 }
 </style>
