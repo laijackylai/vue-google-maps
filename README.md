@@ -1,5 +1,8 @@
 # NUXT-google-maps
 
+## Try It Out
+Link: https://laijackylai.github.io/vue-google-maps/
+
 ## Inital Setup
 
 - run `git clone https://github.com/laijackylai/vue-google-maps.git` in the terminal
