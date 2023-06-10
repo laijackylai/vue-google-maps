@@ -1,4 +1,9 @@
 export default {
+  target: 'static',
+  router: {
+    base: 'vue-google-maps'
+  },
+
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
     title: 'NUXT Google Maps',
