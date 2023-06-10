@@ -1,0 +1,1 @@
+window.__NUXT__=(function(a){return {staticAssetsBase:"\u002Fvue-google-maps\u002F_nuxt\u002Fstatic\u002F1686425127",layout:"default",error:a,serverRendered:true,routePath:"\u002F",config:{_app:{basePath:"\u002Fvue-google-maps\u002F",assetsPath:"\u002Fvue-google-maps\u002F_nuxt\u002F",cdnURL:a},content:{dbHash:"2bc52a5f"}}}}(null));
